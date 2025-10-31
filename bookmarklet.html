@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HLS Player Bookmarklet</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 { color: #333; }
+    .bookmarklet {
+      display: inline-block;
+      padding: 12px 24px;
+      background: linear-gradient(90deg, #06b6d4, #22d3ee);
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    .bookmarklet:hover {
+      background: linear-gradient(90deg, #0891b2, #06b6d4);
+    }
+    .instruction {
+      background: #f0f9ff;
+      border-left: 4px solid #0891b2;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+    .warning {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 15px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎬 HLS Player Bookmarklet</h1>
+    
+    <p>This bookmarklet extracts .m3u8 video URLs from any page and opens them in your HLS player.</p>
+    
+    <h2>📌 Installation:</h2>
+    <div class="instruction">
+      <p><strong>Drag this button to your bookmarks bar:</strong></p>
+      <a href="javascript:(function(){const vids=document.querySelectorAll('video');if(!vids.length){alert('No video found on this page');return;}const src=Array.from(vids).map(v=>v.src||v.currentSrc).filter(Boolean)[0];if(src&&src.includes('.m3u8')){window.open('https://mnmltsai.github.io/hls-player/advanced-player.html?url='+encodeURIComponent(src),'_blank');}else{const xhr=new XMLHttpRequest();xhr.open('GET',window.location.href);xhr.onload=function(){const match=xhr.responseText.match(/https?:\/\/[^\s&quot;&lt;&gt;]+\.m3u8[^\s&quot;&lt;&gt;]*/);if(match){window.open('https://mnmltsai.github.io/hls-player/advanced-player.html?url='+encodeURIComponent(match[0]),'_blank');}else{alert('No .m3u8 URL found');}};xhr.send();}})();" class="bookmarklet">▶ Play in HLS Player</a>
+    </div>
+    
+    <h2>🚀 Usage:</h2>
+    <ol>
+      <li>Go to any video page (e.g., xHamster)</li>
+      <li>Click the bookmarklet in your bookmarks bar</li>
+      <li>It will automatically:
+        <ul>
+          <li>Find the .m3u8 URL</li>
+          <li>Open it in your HLS player</li>
+        </ul>
+      </li>
+    </ol>
+    
+    <div class="warning">
+      <strong>⚠️ Note:</strong> This works best on pages where the video is already playing or loaded. Some sites may have DRM or other protections that prevent this from working.
+    </div>
+    
+    <h2>🔧 Alternative: Manual Method</h2>
+    <div class="instruction">
+      <p>If the bookmarklet doesn't work, use DevTools:</p>
+      <ol>
+        <li>Open the video page</li>
+        <li>Press <code>F12</code> or <code>Cmd+Option+I</code></li>
+        <li>Go to <strong>Network</strong> tab</li>
+        <li>Filter by: <code>m3u8</code></li>
+        <li>Play the video</li>
+        <li>Right-click the .m3u8 request → Copy URL</li>
+        <li>Paste into: <code>https://mnmltsai.github.io/hls-player/advanced-player.html?url=</code></li>
+      </ol>
+    </div>
+    
+    <h2>📱 Browser Extension (Advanced)</h2>
+    <p>For a more robust solution, you could build a browser extension that:</p>
+    <ul>
+      <li>Monitors network requests automatically</li>
+      <li>Adds a button to video pages</li>
+      <li>Works across all sites</li>
+    </ul>
+    <p>Let me know if you want help creating one!</p>
+  </div>
+</body>
+</html>
