@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Advanced HLS.js Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0f14;
+        --panel: #111826;
+        --muted: #94a3b8;
+        --text: #e5e7eb;
+        --accent: #22d3ee;
+        --danger: #ef4444;
+        --ok: #22c55e;
+        --border: #1f2a3a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial,
+          'Apple Color Emoji',
+          'Segoe UI Emoji';
+        background: linear-gradient(180deg, #0b0f14 0%, #0e141f 100%);
+        color: var(--text);
+      }
+      header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(12, 18, 27, 0.9);
+        backdrop-filter: blur(6px);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 10px 0;
+        font-weight: 600;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      input[type='text'] {
+        flex: 1 1 420px;
+        padding: 10px 12px;
+        background: #0c1523;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        outline: none;
+      }
+      input[type='text']::placeholder {
+        color: #70809a;
+      }
+      select,
+      button {
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #0c1523;
+        color: var(--text);
+        cursor: pointer;
+      }
+      button.accent {
+        background: linear-gradient(90deg, #06b6d4, #22d3ee);
+        color: #001219;
+        border: none;
+      }
+      button.ghost {
+        background: transparent;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      main {
+        max-width: 1200px;
+        margin: 16px auto 80px auto;
+        padding: 0 16px 24px 16px;
+      }
+      .player-shell {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: 1fr;
+      }
+      media-controller,
+      video {
+        width: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+        background: black;
+        border: 1px solid var(--border);
+      }
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .toolbar .spacer {
+        flex: 1 1 auto;
+      }
+      .panel {
+        border: 1px solid var(--border);
+        background: #0c1523;
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px;
+      }
+      .stat {
+        padding: 10px;
+        background: #0e1829;
+        border-radius: 10px;
+        border: 1px solid #0f2138;
+      }
+      .label {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .value {
+        font-size: 16px;
+        margin-top: 4px;
+      }
+      .value.ok {
+        color: var(--ok);
+      }
+      .value.warn {
+        color: #f59e0b;
+      }
+      .value.bad {
+        color: var(--danger);
+      }
+      footer {
+        color: var(--muted);
+        font-size: 12px;
+        text-align: center;
+        padding: 16px;
+      }
+      .note {
+        color: var(--muted);
+        font-size: 12px;
+      }
+    </style>
+
+    <!-- Media Chrome (ESM) -->
+    <script type="module">
+      import 'https://cdn.jsdelivr.net/npm/media-chrome@3/+esm';
+    </script>
+    <!-- HLS.js -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  </head>
+  <body>
+    <header>
+      <h1>Advanced HLS.js Player</h1>
+      <div class="row" style="margin-bottom: 8px">
+        <input id="srcUrl" type="text" placeholder="Enter HLS .m3u8 URL…" />
+        <button id="loadBtn" class="accent">Load</button>
+        <button id="toggleStatsBtn" class="ghost" aria-pressed="false">
+          Show Stats
+        </button>
+        <button id="dumpLogsBtn" class="ghost">Dump Debug Log</button>
+      </div>
+      <div class="row">
+        <label class="note">Quality:</label>
+        <select
+          id="qualitySelect"
+          title="Select a quality level or Auto"
+          disabled
+        ></select>
+        <label class="note">ABR Strategy:</label>
+        <select id="abrModeSelect" title="Choose how to switch" disabled>
+          <option value="smooth">Smooth switching</option>
+          <option value="instant">Instant switching</option>
+          <option value="conservative">Conservative switching</option>
+        </select>
+        <div class="spacer"></div>
+        <span class="note"
+          >Tip: Serve this file via http://localhost to avoid file:// CORS.
+          Extensions may log CSP warnings in DevTools; they don't affect this
+          page.</span
+        >
+      </div>
+    </header>
+
+    <main>
+      <div class="player-shell">
+        <media-controller id="mc" defaultsubtitles>
+          <video id="video" slot="media" playsinline>
+            <!-- Example subtitle tracks (replace with your own) -->
+            <track
+              label="English"
+              kind="subtitles"
+              srclang="en"
+              src="#"
+              default
+            />
+            <track label="Spanish" kind="subtitles" srclang="es" src="#" />
+            <!-- Example chapters track -->
+            <track label="Chapters" kind="chapters" srclang="en" src="#" />
+          </video>
+
+          <!-- Thumbnail preview (shows on hover over time range) -->
+          <media-preview-thumbnail slot="preview" time="{{preview-time}}">
+            <media-preview-time-display></media-preview-time-display>
+          </media-preview-thumbnail>
+
+          <!-- Top control bar for title/subtitle menu -->
+          <media-control-bar slot="top-chrome">
+            <media-captions-button></media-captions-button>
+          </media-control-bar>
+
+          <!-- Main control bar -->
+          <media-control-bar>
+            <media-play-button></media-play-button>
+            <media-seek-backward-button
+              seek-offset="10"
+            ></media-seek-backward-button>
+            <media-seek-forward-button
+              seek-offset="10"
+            ></media-seek-forward-button>
+            <media-mute-button></media-mute-button>
+            <media-volume-range></media-volume-range>
+            <media-time-display show-duration></media-time-display>
+            <media-time-range></media-time-range>
+            <media-duration-display></media-duration-display>
+            <media-playback-rate-button></media-playback-rate-button>
+            <media-captions-button></media-captions-button>
+            <media-pip-button></media-pip-button>
+            <media-fullscreen-button></media-fullscreen-button>
+          </media-control-bar>
+
+          <!-- Captions/Subtitles menu -->
+          <media-captions-menu hidden anchor="auto">
+            <media-captions-menu-button>
+              <span slot="off">Off</span>
+            </media-captions-menu-button>
+          </media-captions-menu>
+
+          <!-- Chapters menu (if chapters track exists) -->
+          <media-settings-menu hidden anchor="auto">
+            <media-settings-menu-button aria-label="Settings">
+              Settings
+            </media-settings-menu-button>
+            <media-settings-menu-item> Chapters </media-settings-menu-item>
+          </media-settings-menu>
+        </media-controller>
+
+        <section id="statsPanel" class="panel" hidden>
+          <div class="stats">
+            <div class="stat">
+              <div class="label">Current Quality</div>
+              <div id="statCurrentLevel" class="value">—</div>
+            </div>
+            <div class="stat">
+              <div class="label">Loading Quality</div>
+              <div id="statLoadLevel" class="value">—</div>
+            </div>
+            <div class="stat">
+              <div class="label">Buffer Length</div>
+              <div id="statBuffer" class="value">—</div>
+            </div>
+            <div class="stat">
+              <div class="label">Dropped Frames</div>
+              <div id="statDropped" class="value">—</div>
+            </div>
+            <div class="stat">
+              <div class="label">Total Frames</div>
+              <div id="statTotal" class="value">—</div>
+            </div>
+            <div class="stat">
+              <div class="label">Bandwidth Estimate</div>
+              <div id="statBw" class="value">—</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      Using HLS.js and Media Chrome. Works on browsers with MSE support;
+      Safari/iOS use native HLS fallback.
+    </footer>
+
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        const video = $('video');
+        const srcInput = $('srcUrl');
+        const loadBtn = $('loadBtn');
+        const qualitySelect = $('qualitySelect');
+        const abrModeSelect = $('abrModeSelect');
+        const toggleStatsBtn = $('toggleStatsBtn');
+        const statsPanel = $('statsPanel');
+        const statCurrentLevel = $('statCurrentLevel');
+        const statLoadLevel = $('statLoadLevel');
+        const statBuffer = $('statBuffer');
+        const statDropped = $('statDropped');
+        const statTotal = $('statTotal');
+        const statBw = $('statBw');
+        const dumpLogsBtn = $('dumpLogsBtn');
+
+        const DEFAULT_SRC = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
+
+        let hls = null;
+        let currentSrc = null;
+        let abrMode = 'smooth';
+        let statsTimer = null;
+        let lastBwBps = 0;
+        const logs = [];
+
+        function nowTs() {
+          return new Date().toISOString();
+        }
+        function log(type, msg, data) {
+          const entry = { t: nowTs(), type, msg, data: safeClone(data) };
+          logs.push(entry);
+          const fn =
+            type === 'error'
+              ? console.error
+              : type === 'warn'
+                ? console.warn
+                : console.log;
+          fn(`[${type.toUpperCase()}] ${msg}`, data ?? '');
+        }
+        function safeClone(v) {
+          try {
+            return JSON.parse(JSON.stringify(v));
+          } catch {
+            return String(v);
+          }
+        }
+
+        function formatLevel(levelObj, idx) {
+          if (!levelObj) return `Level ${idx}`;
+          const h =
+            levelObj.height ||
+            (levelObj.attrs &&
+              levelObj.attrs.RESOLUTION &&
+              levelObj.attrs.RESOLUTION.height) ||
+            '';
+          const w =
+            levelObj.width ||
+            (levelObj.attrs &&
+              levelObj.attrs.RESOLUTION &&
+              levelObj.attrs.RESOLUTION.width) ||
+            '';
+          const br = levelObj.bitrate
+            ? Math.round(levelObj.bitrate / 1000) + ' kbps'
+            : '';
+          const codecs = levelObj.codecSet || levelObj.codecs || '';
+          const res = w && h ? `${w}x${h}` : h ? `${h}p` : '';
+          return `L${idx} ${res}${br ? ' · ' + br : ''}${codecs ? ' · ' + codecs : ''}`;
+        }
+
+        function bwHuman(bps) {
+          if (!bps || !isFinite(bps)) return '—';
+          if (bps >= 1e9) return (bps / 1e9).toFixed(2) + ' Gbps';
+          if (bps >= 1e6) return (bps / 1e6).toFixed(2) + ' Mbps';
+          if (bps >= 1e3) return (bps / 1e3).toFixed(2) + ' Kbps';
+          return bps + ' bps';
+        }
+
+        function getPlaybackQuality() {
+          let dropped = 0,
+            total = 0;
+          if (typeof video.getVideoPlaybackQuality === 'function') {
+            const q = video.getVideoPlaybackQuality();
+            dropped = q.droppedVideoFrames || 0;
+            total = q.totalVideoFrames || 0;
+          } else {
+            dropped = video.webkitDroppedFrameCount || 0;
+            total = video.webkitDecodedFrameCount || 0;
+          }
+          return { dropped, total };
+        }
+
+        function getBufferLen() {
+          const ct = video.currentTime || 0;
+          const b = video.buffered;
+          if (!b || b.length === 0) return 0;
+          for (let i = 0; i < b.length; i++) {
+            const start = b.start(i),
+              end = b.end(i);
+            if (ct >= start && ct <= end) return Math.max(0, end - ct);
+          }
+          const end = b.end(b.length - 1);
+          return Math.max(0, end - ct);
+        }
+
+        function applyAbrModeToConfig(mode, base) {
+          const cfg = Object.assign({}, base);
+          cfg.enableWorker = true;
+          cfg.debug = true;
+          cfg.lowLatencyMode = false;
+          cfg.backBufferLength = 60;
+          cfg.maxMaxBufferLength = 60;
+          cfg.progressive = true;
+          cfg.abrMaxWithRealBitrate = true;
+
+          if (mode === 'instant') {
+            cfg.maxBufferLength = 10;
+            cfg.abrEwmaFastLive = 1.0;
+            cfg.abrEwmaSlowLive = 3.0;
+            cfg.abrEwmaFastVoD = 1.0;
+            cfg.abrEwmaSlowVoD = 3.0;
+            cfg.capLevelToPlayerSize = false;
+          } else if (mode === 'conservative') {
+            cfg.maxBufferLength = 45;
+            cfg.abrEwmaFastLive = 9.0;
+            cfg.abrEwmaSlowLive = 60.0;
+            cfg.abrEwmaFastVoD = 9.0;
+            cfg.abrEwmaSlowVoD = 60.0;
+            cfg.abrMinAutoBitrate = 200000;
+            cfg.capLevelToPlayerSize = true;
+          } else {
+            cfg.maxBufferLength = 30;
+            cfg.abrEwmaFastLive = 4.0;
+            cfg.abrEwmaSlowLive = 15.0;
+            cfg.abrEwmaFastVoD = 4.0;
+            cfg.abrEwmaSlowVoD = 15.0;
+            cfg.capLevelToPlayerSize = false;
+          }
+          return cfg;
+        }
+
+        function destroyHls() {
+          if (hls) {
+            try {
+              hls.destroy();
+            } catch {}
+            hls = null;
+          }
+        }
+
+        function initHls(mode) {
+          destroyHls();
+          const base = {};
+          const cfg = applyAbrModeToConfig(mode || abrMode, base);
+          hls = new Hls(cfg);
+
+          hls.on(Hls.Events.MEDIA_ATTACHED, () =>
+            log('info', 'Media attached'),
+          );
+          hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+            log('info', 'Manifest parsed', {
+              levels: data.levels?.length,
+              firstLevel: hls.firstLevel,
+            });
+            qualitySelect.disabled = false;
+            abrModeSelect.disabled = false;
+            populateQualityMenu();
+            video.play().catch(() => {});
+          });
+
+          hls.on(Hls.Events.LEVEL_SWITCHING, (_, data) => {
+            const label = formatLevel(hls.levels?.[data.level], data.level);
+            log('info', `LEVEL_SWITCHING → ${label}`, data);
+          });
+          hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
+            const label = formatLevel(hls.levels?.[data.level], data.level);
+            log('info', `LEVEL_SWITCHED → ${label}`, data);
+          });
+          hls.on(Hls.Events.FRAG_CHANGED, (_, data) => {
+            log('debug', 'FRAG_CHANGED', {
+              sn: data?.frag?.sn,
+              level: data?.frag?.level,
+            });
+          });
+          hls.on(Hls.Events.FRAG_LOADED, (_, data) => {
+            const stats = data.stats || {};
+            const bytes = (stats.total ?? stats.loaded) || 0;
+            const ms = (stats.tload || 0) - (stats.trequest || 0);
+            if (bytes > 0 && ms > 0) {
+              const instBps = (bytes * 8) / (ms / 1000);
+              lastBwBps = lastBwBps ? 0.6 * instBps + 0.4 * lastBwBps : instBps;
+            }
+          });
+
+          hls.on(Hls.Events.ERROR, (_, data) => {
+            log(
+              'error',
+              `HLS.js error: type=${data.type} details=${data.details} fatal=${data.fatal}`,
+              data,
+            );
+            if (data.fatal) {
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  log(
+                    'warn',
+                    'Fatal network error encountered. Restarting load…',
+                  );
+                  hls.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  log(
+                    'warn',
+                    'Fatal media error encountered. Attempting recovery…',
+                  );
+                  hls.recoverMediaError();
+                  break;
+                default:
+                  log('warn', 'Unrecoverable error. Recreating Hls instance…');
+                  const t = video.currentTime || 0;
+                  const wasPaused = video.paused;
+                  const src = currentSrc;
+                  initHls(abrMode);
+                  attachAndLoad(src, { startTime: t, paused: wasPaused });
+                  break;
+              }
+            }
+          });
+        }
+
+        function attachAndLoad(url, opts = {}) {
+          if (!url) return;
+          currentSrc = url;
+          lastBwBps = 0;
+
+          if (Hls.isSupported()) {
+            if (!hls) initHls(abrMode);
+            hls.detachMedia();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+            if (opts.startTime != null) {
+              video.currentTime = opts.startTime;
+            }
+            if (opts.paused === false) {
+              video.play().catch(() => {});
+            }
+          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url;
+            video.addEventListener('loadedmetadata', function onMeta() {
+              video.removeEventListener('loadedmetadata', onMeta);
+              if (opts.startTime != null) video.currentTime = opts.startTime;
+              if (opts.paused === false) video.play().catch(() => {});
+            });
+          } else {
+            alert('HLS is not supported in this browser.');
+          }
+        }
+
+        function populateQualityMenu() {
+          qualitySelect.innerHTML = '';
+          const auto = document.createElement('option');
+          auto.value = '-1';
+          auto.textContent = 'Auto (ABR)';
+          qualitySelect.appendChild(auto);
+
+          const lvls =
+            hls && hls.levels ? hls.levels.map((l, i) => ({ i, l })) : [];
+          lvls.sort((a, b) => (a.l.height || 0) - (b.l.height || 0));
+          lvls.forEach(({ i, l }) => {
+            const opt = document.createElement('option');
+            opt.value = String(i);
+            opt.textContent = formatLevel(l, i);
+            qualitySelect.appendChild(opt);
+          });
+
+          if (hls && hls.autoLevelEnabled) {
+            qualitySelect.value = '-1';
+          } else if (hls && hls.currentLevel != null) {
+            qualitySelect.value = String(hls.currentLevel);
+          }
+        }
+
+        function setQuality(levelIndex) {
+          if (!hls) return;
+          if (levelIndex === -1) {
+            hls.currentLevel = -1;
+            hls.autoLevelEnabled = true;
+            log('info', 'Quality set to Auto (ABR)');
+            return;
+          }
+          hls.autoLevelEnabled = false;
+
+          if (abrMode === 'smooth') {
+            hls.nextLevel = levelIndex;
+            log('info', `Smooth switch requested → nextLevel=${levelIndex}`);
+          } else if (abrMode === 'instant') {
+            hls.currentLevel = levelIndex;
+            try {
+              const t = video.currentTime || 0;
+              video.currentTime = Math.max(0, t - 0.001) + 0.001;
+            } catch {}
+            hls.startLoad();
+            log('info', `Instant switch applied → currentLevel=${levelIndex}`);
+          } else {
+            hls.currentLevel = levelIndex;
+            hls.autoLevelCapping = levelIndex;
+            log(
+              'info',
+              `Conservative switch → currentLevel=${levelIndex}, autoLevelCapping=${levelIndex}`,
+            );
+          }
+        }
+
+        function updateStats() {
+          if (!statsPanel || statsPanel.hidden) return;
+          const curLevel =
+            hls && hls.currentLevel != null ? hls.currentLevel : -1;
+          const loadLevel = hls && hls.loadLevel != null ? hls.loadLevel : -1;
+
+          const curLabel =
+            curLevel === -1
+              ? 'Auto'
+              : formatLevel(hls?.levels?.[curLevel], curLevel);
+          const loadLabel =
+            loadLevel === -1
+              ? 'Auto'
+              : formatLevel(hls?.levels?.[loadLevel], loadLevel);
+
+          const buf = getBufferLen();
+          const { dropped, total } = getPlaybackQuality();
+          statCurrentLevel.textContent = curLabel;
+          statLoadLevel.textContent = loadLabel;
+          statBuffer.textContent = buf.toFixed(2) + ' s';
+          statDropped.textContent = String(dropped);
+          statTotal.textContent = String(total);
+          statBw.textContent = bwHuman(lastBwBps);
+        }
+
+        function startStats() {
+          if (statsTimer) return;
+          statsTimer = setInterval(updateStats, 1000);
+        }
+        function stopStats() {
+          if (statsTimer) {
+            clearInterval(statsTimer);
+            statsTimer = null;
+          }
+        }
+
+        function toggleStats() {
+          const willShow = statsPanel.hidden;
+          statsPanel.hidden = !willShow;
+          toggleStatsBtn.setAttribute('aria-pressed', String(willShow));
+          toggleStatsBtn.textContent = willShow ? 'Hide Stats' : 'Show Stats';
+          if (willShow) {
+            updateStats();
+            startStats();
+          } else {
+            stopStats();
+          }
+        }
+
+        function dumpLogs() {
+          const blob = new Blob(
+            [JSON.stringify({ when: nowTs(), logs }, null, 2)],
+            { type: 'application/json' },
+          );
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `hlsjs-log-${Date.now()}.json`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          log('info', 'Debug log downloaded as JSON');
+        }
+
+        loadBtn.addEventListener('click', () => {
+          const url = (srcInput.value || '').trim();
+          if (!url) {
+            alert('Please enter a .m3u8 URL');
+            return;
+          }
+          const wasPaused = video.paused;
+          attachAndLoad(url, { paused: wasPaused === false ? false : true });
+        });
+
+        srcInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') loadBtn.click();
+        });
+
+        qualitySelect.addEventListener('change', () => {
+          const val = parseInt(qualitySelect.value, 10);
+          setQuality(isNaN(val) ? -1 : val);
+        });
+
+        abrModeSelect.addEventListener('change', () => {
+          const mode = abrModeSelect.value;
+          if (!mode || mode === abrMode) return;
+          abrMode = mode;
+          log('info', `ABR mode changed → ${mode}`);
+          const t = video.currentTime || 0;
+          const wasPaused = video.paused;
+          const src = currentSrc;
+          initHls(abrMode);
+          if (src) attachAndLoad(src, { startTime: t, paused: wasPaused });
+        });
+
+        toggleStatsBtn.addEventListener('click', toggleStats);
+        dumpLogsBtn.addEventListener('click', dumpLogs);
+
+        // Check for video URL in query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlFromParam =
+          urlParams.get('url') || urlParams.get('src') || urlParams.get('v');
+
+        // Initial load
+        srcInput.value = urlFromParam || DEFAULT_SRC;
+        if (srcInput.value) {
+          attachAndLoad(srcInput.value, { paused: true });
+        }
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) stopStats();
+          else if (!statsPanel.hidden) startStats();
+        });
+
+        video.addEventListener('play', () => log('info', 'Video play'));
+        video.addEventListener('pause', () => log('info', 'Video pause'));
+        video.addEventListener('seeking', () =>
+          log('debug', `Seeking → ${video.currentTime.toFixed(2)}s`),
+        );
+        video.addEventListener('waiting', () =>
+          log('debug', 'Waiting (buffering)'),
+        );
+        video.addEventListener('ended', () => log('info', 'Playback ended'));
+      })();
+    </script>
+  </body>
+</html>
