@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ultra HLS.js Player - All Features</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/media-chrome@3/+esm"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #e2e8f0;
+      padding: 20px;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 { margin-bottom: 20px; font-size: 24px; }
+    .grid { display: grid; gap: 15px; grid-template-columns: 1fr 350px; }
+    .main-col { display: flex; flex-direction: column; gap: 15px; }
+    .side-col { display: flex; flex-direction: column; gap: 15px; }
+    media-controller { 
+      border-radius: 12px; 
+      overflow: hidden;
+      border: 2px solid #334155;
+    }
+    .panel { 
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 15px;
+    }
+    .panel h3 { font-size: 14px; margin-bottom: 12px; color: #22d3ee; }
+    input, select, button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 13px;
+    }
+    input[type="text"] { width: 100%; }
+    button { cursor: pointer; transition: all 0.2s; }
+    button:hover { background: #1e293b; }
+    button.primary { background: linear-gradient(90deg, #06b6d4, #22d3ee); color: #0f172a; border: none; font-weight: bold; }
+    .control-row { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+    .control-row label { font-size: 12px; color: #94a3b8; min-width: 100px; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .stat-item { background: #0f172a; padding: 8px; border-radius: 4px; }
+    .stat-label { font-size: 10px; color: #64748b; }
+    .stat-value { font-size: 14px; font-weight: bold; margin-top: 2px; }
+    .track-list { max-height: 150px; overflow-y: auto; }
+    .track-item { 
+      padding: 8px;
+      margin: 4px 0;
+      background: #0f172a;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .track-item:hover { border-color: #22d3ee; }
+    .track-item.active { background: #22d3ee; color: #0f172a; }
+    label.checkbox { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    input[type="checkbox"] { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 Ultra HLS.js Player - All Features</h1>
+    
+    <div style="margin-bottom: 15px;">
+      <input type="text" id="urlInput" placeholder="Enter HLS .m3u8 URL" value="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">
+      <button class="primary" onclick="loadVideo()" style="margin-top: 8px; width: 100%;">Load Video</button>
+    </div>
+    
+    <div class="grid">
+      <div class="main-col">
+        <media-controller id="mc">
+          <video id="video" slot="media" playsinline crossorigin></video>
+          <media-control-bar>
+            <media-play-button></media-play-button>
+            <media-seek-backward-button></media-seek-backward-button>
+            <media-seek-forward-button></media-seek-forward-button>
+            <media-mute-button></media-mute-button>
+            <media-volume-range></media-volume-range>
+            <media-time-display></media-time-display>
+            <media-time-range></media-time-range>
+            <media-duration-display></media-duration-display>
+            <media-playback-rate-button></media-playback-rate-button>
+            <media-captions-button></media-captions-button>
+            <media-pip-button></media-pip-button>
+            <media-fullscreen-button></media-fullscreen-button>
+          </media-control-bar>
+        </media-controller>
+        
+        <div class="panel">
+          <h3>📊 Live Stats</h3>
+          <div class="stats-grid">
+            <div class="stat-item"><div class="stat-label">Quality</div><div class="stat-value" id="statQuality">—</div></div>
+            <div class="stat-item"><div class="stat-label">Buffer</div><div class="stat-value" id="statBuffer">—</div></div>
+            <div class="stat-item"><div class="stat-label">Bitrate</div><div class="stat-value" id="statBitrate">—</div></div>
+            <div class="stat-item"><div class="stat-label">Dropped</div><div class="stat-value" id="statDropped">—</div></div>
+            <div class="stat-item"><div class="stat-label">Loaded</div><div class="stat-value" id="statLoaded">—</div></div>
+            <div class="stat-item"><div class="stat-label">FPS</div><div class="stat-value" id="statFps">—</div></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="side-col">
+        <div class="panel">
+          <h3>⚙️ Quality & ABR</h3>
+          <div class="control-row">
+            <label>Quality:</label>
+            <select id="levelSelect" onchange="setLevel(this.value)" style="flex:1"><option>Auto</option></select>
+          </div>
+          <div class="control-row">
+            <label>ABR Strategy:</label>
+            <select id="abrSelect" onchange="setABR(this.value)" style="flex:1">
+              <option value="0">Instant</option>
+              <option value="1" selected>Smooth</option>
+              <option value="2">Conservative</option>
+            </select>
+          </div>
+          <div class="control-row">
+            <label class="checkbox">
+              <input type="checkbox" id="lowLatency" onchange="toggleLowLatency(this.checked)">
+              Low Latency Mode
+            </label>
+          </div>
+        </div>
+        
+        <div class="panel">
+          <h3>🎵 Audio Tracks</h3>
+          <div id="audioTracks" class="track-list">—</div>
+        </div>
+        
+        <div class="panel">
+          <h3>📝 Subtitles</h3>
+          <div id="subtitleTracks" class="track-list">—</div>
+        </div>
+        
+        <div class="panel">
+          <h3>🔧 Buffer Controls</h3>
+          <div class="control-row">
+            <label>Max Buffer:</label>
+            <input type="range" id="maxBuffer" min="10" max="120" value="30" oninput="setBuffer(this.value)">
+            <span id="bufferVal">30s</span>
+          </div>
+          <button onclick="clearBuffer()" style="width:100%; margin-top:8px;">Clear Buffer</button>
+        </div>
+        
+        <div class="panel">
+          <h3>📡 Network</h3>
+          <div class="stat-item"><div class="stat-label">Bandwidth</div><div class="stat-value" id="statBandwidth">—</div></div>
+          <div class="stat-item" style="margin-top:8px;"><div class="stat-label">Errors</div><div class="stat-value" id="statErrors">0</div></div>
+        </div>
+        
+        <button onclick="downloadLogs()" style="width:100%;">💾 Download Debug Log</button>
+        <button onclick="copyStreamUrl()" style="width:100%; margin-top:8px;">⬇ Copy Stream URL</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    let hls = null;
+    let statsInterval = null;
+    const logs = [];
+    let errorCount = 0;
+
+    function log(type, msg, data) {
+      logs.push({ t: new Date().toISOString(), type, msg, data });
+      console.log(`[${type.toUpperCase()}] ${msg}`, data || '');
+    }
+
+    // URL validation function
+    function validateUrl(url) {
+      if (!url) return { valid: false, error: 'No URL provided' };
+      
+      // Block dangerous protocols
+      const dangerousProtocols = ['javascript:', 'data:', 'file:', 'blob:', 'vbscript:'];
+      const urlLower = url.toLowerCase();
+      for (const protocol of dangerousProtocols) {
+        if (urlLower.startsWith(protocol)) {
+          return { valid: false, error: 'Blocked URL protocol: ' + protocol };
+        }
+      }
+      
+      // Only allow HTTP(S)
+      if (!urlLower.startsWith('http://') && !urlLower.startsWith('https://')) {
+        return { valid: false, error: 'Only HTTP(S) URLs are allowed' };
+      }
+      
+      // Require .m3u8 extension
+      if (!urlLower.includes('.m3u8')) {
+        return { valid: false, error: 'URL must point to an .m3u8 HLS stream' };
+      }
+      
+      // Try to parse as URL
+      try {
+        new URL(url);
+      } catch (e) {
+        return { valid: false, error: 'Invalid URL format' };
+      }
+      
+      return { valid: true };
+    }
+
+    function loadVideo() {
+      const url = document.getElementById('urlInput').value.trim();
+      if (!url) return alert('Enter a URL');
+      
+      const validation = validateUrl(url);
+      if (!validation.valid) {
+        alert('Security Error: ' + validation.error);
+        log('error', 'URL validation failed', { url, error: validation.error });
+        return;
+      }
+      
+      if (hls) hls.destroy();
+      errorCount = 0;
+      document.getElementById('statErrors').textContent = '0';
+      
+      const config = {
+        debug: true,
+        enableWorker: true,
+        lowLatencyMode: document.getElementById('lowLatency').checked,
+        maxBufferLength: parseInt(document.getElementById('maxBuffer').value),
+        maxMaxBufferLength: 120,
+        backBufferLength: 90
+      };
+      
+      hls = new Hls(config);
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      
+      hls.on(Hls.Events.MANIFEST_PARSED, (e, data) => {
+        log('info', 'Manifest parsed', data);
+        populateLevels();
+        populateAudioTracks();
+        populateSubtitles();
+      });
+      
+      hls.on(Hls.Events.LEVEL_SWITCHED, (e, data) => {
+        log('info', 'Level switched', data);
+      });
+      
+      hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, (e, data) => {
+        log('info', 'Audio track switched', data);
+        populateAudioTracks();
+      });
+      
+      hls.on(Hls.Events.SUBTITLE_TRACK_SWITCH, (e, data) => {
+        log('info', 'Subtitle track switched', data);
+        populateSubtitles();
+      });
+      
+      hls.on(Hls.Events.ERROR, (e, data) => {
+        log('error', `Error: ${data.type} - ${data.details}`, data);
+        errorCount++;
+        document.getElementById('statErrors').textContent = errorCount;
+        
+        if (data.fatal) {
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            hls.startLoad();
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            hls.recoverMediaError();
+          }
+        }
+      });
+      
+      startStats();
+    }
+
+    function populateLevels() {
+      const select = document.getElementById('levelSelect');
+      select.innerHTML = '<option value="-1">Auto (ABR)</option>';
+      hls.levels.forEach((level, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `${level.height}p - ${Math.round(level.bitrate/1000)}kbps`;
+        select.appendChild(opt);
+      });
+    }
+
+    function populateAudioTracks() {
+      const container = document.getElementById('audioTracks');
+      if (!hls || !hls.audioTracks || hls.audioTracks.length === 0) {
+        container.innerHTML = '<div style="color:#64748b;font-size:12px;">No audio tracks</div>';
+        return;
+      }
+      container.innerHTML = '';
+      hls.audioTracks.forEach((track, i) => {
+        const div = document.createElement('div');
+        div.className = 'track-item' + (i === hls.audioTrack ? ' active' : '');
+        div.textContent = track.name || `Track ${i + 1}`;
+        div.onclick = () => { hls.audioTrack = i; populateAudioTracks(); };
+        container.appendChild(div);
+      });
+    }
+
+    function populateSubtitles() {
+      const container = document.getElementById('subtitleTracks');
+      if (!hls || !hls.subtitleTracks || hls.subtitleTracks.length === 0) {
+        container.innerHTML = '<div style="color:#64748b;font-size:12px;">No subtitles</div>';
+        return;
+      }
+      container.innerHTML = '<div class="track-item' + (hls.subtitleTrack === -1 ? ' active' : '') + '" onclick="hls.subtitleTrack=-1;populateSubtitles();">Off</div>';
+      hls.subtitleTracks.forEach((track, i) => {
+        const div = document.createElement('div');
+        div.className = 'track-item' + (i === hls.subtitleTrack ? ' active' : '');
+        div.textContent = track.name || track.lang || `Track ${i + 1}`;
+        div.onclick = () => { hls.subtitleTrack = i; populateSubtitles(); };
+        container.appendChild(div);
+      });
+    }
+
+    function setLevel(val) {
+      if (hls) hls.currentLevel = parseInt(val);
+    }
+
+    function setABR(val) {
+      if (hls) {
+        const modes = ['instant', 'smooth', 'conservative'];
+        log('info', `ABR mode: ${modes[val]}`);
+      }
+    }
+
+    function toggleLowLatency(enabled) {
+      if (hls) {
+        hls.config.lowLatencyMode = enabled;
+        log('info', `Low latency: ${enabled}`);
+      }
+    }
+
+    function setBuffer(val) {
+      document.getElementById('bufferVal').textContent = val + 's';
+      if (hls) hls.config.maxBufferLength = parseInt(val);
+    }
+
+    function clearBuffer() {
+      if (hls) {
+        const t = video.currentTime;
+        hls.trigger(Hls.Events.BUFFER_FLUSHING, {startOffset: 0, endOffset: Number.POSITIVE_INFINITY, type: null});
+        video.currentTime = t;
+        log('info', 'Buffer cleared');
+      }
+    }
+
+    function startStats() {
+      if (statsInterval) clearInterval(statsInterval);
+      statsInterval = setInterval(() => {
+        if (!hls) return;
+        
+        const level = hls.currentLevel >= 0 ? hls.levels[hls.currentLevel] : null;
+        document.getElementById('statQuality').textContent = level ? `${level.height}p` : 'Auto';
+        document.getElementById('statBitrate').textContent = level ? Math.round(level.bitrate/1000) + ' kbps' : '—';
+        
+        const buf = video.buffered;
+        const bufLen = buf.length > 0 ? (buf.end(0) - video.currentTime).toFixed(1) : 0;
+        document.getElementById('statBuffer').textContent = bufLen + 's';
+        
+        const q = video.getVideoPlaybackQuality ? video.getVideoPlaybackQuality() : null;
+        document.getElementById('statDropped').textContent = q ? q.droppedVideoFrames : '—';
+        document.getElementById('statFps').textContent = q && q.totalVideoFrames ? Math.round(q.totalVideoFrames / video.currentTime) : '—';
+        
+        document.getElementById('statLoaded').textContent = hls.loadLevel >= 0 ? hls.levels[hls.loadLevel]?.height + 'p' : '—';
+        document.getElementById('statBandwidth').textContent = hls.bandwidthEstimate ? (hls.bandwidthEstimate / 1e6).toFixed(2) + ' Mbps' : '—';
+      }, 1000);
+    }
+
+    function downloadLogs() {
+      const blob = new Blob([JSON.stringify({logs, time: new Date().toISOString()}, null, 2)], {type: 'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `hls-log-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    async function copyStreamUrl() {
+      const url = document.getElementById('urlInput').value.trim();
+      if (url) {
+        try {
+          await navigator.clipboard.writeText(url);
+          alert('✓ Stream URL copied to clipboard!');
+        } catch (e) {
+          prompt('Copy this URL:', url);
+        }
+      }
+    }
+
+    // Auto-load URL from query parameter
+    const params = new URLSearchParams(window.location.search);
+    const urlParam = params.get('url') || params.get('src') || params.get('v');
+    if (urlParam) {
+      const validation = validateUrl(urlParam);
+      if (validation.valid) {
+        document.getElementById('urlInput').value = urlParam;
+        loadVideo();
+      } else {
+        alert('Security Error: ' + validation.error);
+        console.error('URL validation failed:', validation.error, urlParam);
+      }
+    }
+  </script>
+</body>
+</html>

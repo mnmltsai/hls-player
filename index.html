@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>HLS Player Collection - Advanced HTML5 Video Players</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Collection of advanced HLS.js video players with playlist management, themes, gestures, compare mode, and developer tools">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+    
+    .tagline {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      margin-bottom: 20px;
+    }
+    
+    .hero-links {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 30px;
+    }
+    
+    .hero-btn {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    .hero-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    
+    .players-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 30px;
+      margin-bottom: 60px;
+    }
+    
+    .player-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 30px;
+      transition: all 0.3s;
+    }
+    
+    .player-card:hover {
+      transform: translateY(-5px);
+      background: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .player-card h2 {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .badge {
+      background: #22d3ee;
+      color: #0f172a;
+      font-size: 0.7rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    
+    .badge.new {
+      background: #22c55e;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    .player-card .description {
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+    }
+    
+    .features {
+      list-style: none;
+      margin-bottom: 20px;
+    }
+    
+    .features li {
+      padding: 6px 0;
+      padding-left: 24px;
+      position: relative;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .features li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #22d3ee;
+      font-weight: bold;
+    }
+    
+    .btn {
+      display: inline-block;
+      background: linear-gradient(90deg, #06b6d4, #22d3ee);
+      color: #0f172a;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 15px rgba(34, 211, 238, 0.4);
+    }
+    
+    .btn.secondary {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      margin-left: 10px;
+    }
+    
+    .comparison-table {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 60px;
+      overflow-x: auto;
+    }
+    
+    .comparison-table h2 {
+      margin-bottom: 20px;
+      font-size: 2rem;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    th {
+      background: rgba(0, 0, 0, 0.2);
+      font-weight: 600;
+    }
+    
+    td {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .check {
+      color: #22c55e;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    
+    .no {
+      color: rgba(255, 255, 255, 0.3);
+    }
+    
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.9rem;
+    }
+    
+    footer a {
+      color: #22d3ee;
+      text-decoration: none;
+    }
+    
+    footer a:hover {
+      text-decoration: underline;
+    }
+    
+    @media (max-width: 768px) {
+      h1 { font-size: 2rem; }
+      .players-grid { grid-template-columns: 1fr; }
+      .hero-links { flex-direction: column; }
+      .hero-btn { width: 100%; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎬 HLS Player Collection</h1>
+      <p class="tagline">Advanced HTML5 video players powered by HLS.js</p>
+      <div class="hero-links">
+        <a href="ultra-player-enhanced.html" class="hero-btn">🚀 Try Ultra Enhanced Player</a>
+        <a href="bookmarklets.html" class="hero-btn">📌 Get Bookmarklets</a>
+        <a href="https://github.com/mnmltsai/hls-player" class="hero-btn">💻 View on GitHub</a>
+      </div>
+    </header>
+    
+    <div class="players-grid">
+      <!-- Ultra Enhanced Player -->
+      <div class="player-card">
+        <h2>
+          🚀 Ultra Enhanced
+          <span class="badge new">NEW</span>
+        </h2>
+        <p class="description">
+          The ultimate HLS player with every feature imaginable. Perfect for power users and developers.
+        </p>
+        <ul class="features">
+          <li>Playlist/Queue Management</li>
+          <li>Light/Dark Themes</li>
+          <li>Keyboard Shortcuts (press ?)</li>
+          <li>Mini Player Mode</li>
+          <li>Manifest Viewer</li>
+          <li>Error Recovery Dashboard</li>
+          <li>Touch Gestures</li>
+          <li>Compare Mode (side-by-side)</li>
+          <li>Sync Multiple Players</li>
+          <li>Full ARIA/Accessibility</li>
+        </ul>
+        <a href="ultra-player-enhanced.html" class="btn">Launch Player</a>
+      </div>
+      
+      <!-- Advanced Player -->
+      <div class="player-card">
+        <h2>🎬 Advanced Player</h2>
+        <p class="description">
+          Feature-rich player with advanced controls and detailed statistics. Great for quality-conscious viewers.
+        </p>
+        <ul class="features">
+          <li>Quality Selection & ABR</li>
+          <li>Live Statistics</li>
+          <li>Buffer Monitoring</li>
+          <li>Debug Logging</li>
+          <li>Media Chrome Controls</li>
+          <li>Error Recovery</li>
+        </ul>
+        <a href="advanced-player.html" class="btn">Launch Player</a>
+      </div>
+      
+      <!-- Ultra Player (Original) -->
+      <div class="player-card">
+        <h2>⚡ Ultra Player</h2>
+        <p class="description">
+          Comprehensive player with audio/subtitle tracks, buffer controls, and network monitoring.
+        </p>
+        <ul class="features">
+          <li>Audio Track Selection</li>
+          <li>Subtitle Support</li>
+          <li>Buffer Controls</li>
+          <li>Low Latency Mode</li>
+          <li>Network Stats</li>
+          <li>Quality Settings</li>
+        </ul>
+        <a href="ultra-player.html" class="btn">Launch Player</a>
+      </div>
+      
+      <!-- Fast Player -->
+      <div class="player-card">
+        <h2>
+          🚀 Fast Player
+          <span class="badge">SPEED</span>
+        </h2>
+        <p class="description">
+          Lightning-fast player optimized for instant playback. Minimal UI, maximum performance.
+        </p>
+        <ul class="features">
+          <li>Instant Startup</li>
+          <li>Low Latency Optimized</li>
+          <li>Minimal UI</li>
+          <li>Fullscreen Support</li>
+          <li>PiP Support</li>
+          <li>Keyboard Shortcuts</li>
+        </ul>
+        <a href="fast-player.html" class="btn">Launch Player</a>
+      </div>
+    </div>
+    
+    <!-- Feature Comparison Table -->
+    <div class="comparison-table">
+      <h2>📊 Feature Comparison</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Ultra Enhanced</th>
+            <th>Advanced</th>
+            <th>Ultra</th>
+            <th>Fast</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Basic Playback</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Quality Selection</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Playlist Management</td>
+            <td class="check">✓</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+          </tr>
+          <tr>
+            <td>Custom Themes</td>
+            <td class="check">✓</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+          </tr>
+          <tr>
+            <td>Keyboard Shortcuts</td>
+            <td class="check">✓ (with overlay)</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Mini Player</td>
+            <td class="check">✓</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+          </tr>
+          <tr>
+            <td>Manifest Viewer</td>
+            <td class="check">✓</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+          </tr>
+          <tr>
+            <td>Error Dashboard</td>
+            <td class="check">✓</td>
+            <td class="check">✓ (basic)</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+          </tr>
+          <tr>
+            <td>Touch Gestures</td>
+            <td class="check">✓</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+          </tr>
+          <tr>
+            <td>Compare Mode</td>
+            <td class="check">✓</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+          </tr>
+          <tr>
+            <td>Sync Players</td>
+            <td class="check">✓</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+            <td class="no">—</td>
+          </tr>
+          <tr>
+            <td>Audio/Subtitle Tracks</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="no">—</td>
+          </tr>
+          <tr>
+            <td>Live Stats</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Startup Speed</td>
+            <td>Normal</td>
+            <td>Normal</td>
+            <td>Normal</td>
+            <td class="check">Lightning ⚡</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <footer>
+      <p>Built with ❤️ using <a href="https://github.com/video-dev/hls.js" target="_blank">HLS.js</a> and <a href="https://www.media-chrome.org/" target="_blank">Media Chrome</a></p>
+      <p style="margin-top: 10px;">
+        <a href="https://github.com/mnmltsai/hls-player">View Source on GitHub</a> • 
+        <a href="bookmarklets.html">Get Bookmarklets</a>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

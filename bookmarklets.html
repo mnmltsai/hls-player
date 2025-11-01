@@ -76,7 +76,19 @@
     <p class="subtitle">Drag these links to your bookmarks bar to extract and play HLS streams</p>
 
     <div class="card">
-      <h2>Ultra Player <span class="badge">NEW</span></h2>
+      <h2>Ultra Enhanced Player <span class="badge">NEW</span></h2>
+      <p class="description">
+        The ultimate player with playlist management, themes, keyboard shortcuts overlay, mini player mode,
+        manifest viewer, error dashboard, touch gestures, compare mode, and player sync.
+      </p>
+      <a href="javascript:(function(){const vids=document.querySelectorAll('video');if(!vids.length){alert('No video found on this page');return;}const src=Array.from(vids).map(v=>v.src||v.currentSrc).filter(Boolean)[0];if(src&&src.includes('.m3u8')){window.open('https://mnmltsai.github.io/hls-player/ultra-player-enhanced.html?url='+encodeURIComponent(src),'_blank');}else{const xhr=new XMLHttpRequest();xhr.open('GET',window.location.href);xhr.onload=function(){const match=xhr.responseText.match(/https?:\/\/[^\s&quot;&lt;&gt;]+\.m3u8[^\s&quot;&lt;&gt;]*/);if(match){window.open('https://mnmltsai.github.io/hls-player/ultra-player-enhanced.html?url='+encodeURIComponent(match[0]),'_blank');}else{alert('No .m3u8 URL found');}};xhr.send();}})();" class="bookmarklet">
+        🚀 Play in Ultra Enhanced
+      </a>
+      <div class="code-block" onclick="this.select()">javascript:(function(){const vids=document.querySelectorAll('video');if(!vids.length){alert('No video found on this page');return;}const src=Array.from(vids).map(v=>v.src||v.currentSrc).filter(Boolean)[0];if(src&&src.includes('.m3u8')){window.open('https://mnmltsai.github.io/hls-player/ultra-player-enhanced.html?url='+encodeURIComponent(src),'_blank');}else{const xhr=new XMLHttpRequest();xhr.open('GET',window.location.href);xhr.onload=function(){const match=xhr.responseText.match(/https?:\/\/[^\s"<>]+\.m3u8[^\s"<>]*/);if(match){window.open('https://mnmltsai.github.io/hls-player/ultra-player-enhanced.html?url='+encodeURIComponent(match[0]),'_blank');}else{alert('No .m3u8 URL found');}};xhr.send();}})();</div>
+    </div>
+
+    <div class="card">
+      <h2>Ultra Player</h2>
       <p class="description">
         All bleeding-edge features: low latency mode, audio/subtitle track selection, 
         advanced buffer controls, network monitoring, and debug logging.
