@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fast HLS Player</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #000;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    #video { 
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+    }
+    #controls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.8));
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 10;
+    }
+    body:hover #controls, #controls:hover { opacity: 1; }
+    #progress {
+      width: 100%;
+      height: 4px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 2px;
+      cursor: pointer;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    #progress-bar {
+      height: 100%;
+      background: #00d4ff;
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.1s;
+    }
+    #buffer-bar {
+      position: absolute;
+      height: 100%;
+      background: rgba(255,255,255,0.5);
+      border-radius: 2px;
+      width: 0%;
+    }
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    button {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 20px;
+      padding: 5px;
+      opacity: 0.9;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 1; }
+    #time {
+      color: white;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    #quality {
+      background: rgba(255,255,255,0.1);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      outline: none;
+    }
+    #stats {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      color: #00d4ff;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: monospace;
+      z-index: 20;
+      display: none;
+    }
+    .spacer { flex: 1; }
+    #loader {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 14px;
+      z-index: 5;
+      display: none;
+    }
+    .spinner {
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top: 3px solid #00d4ff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <video id="video" autoplay playsinline></video>
+  
+  <div id="loader">
+    <div class="spinner"></div>
+    <div style="text-align: center;">Loading...</div>
+  </div>
+  
+  <div id="stats"></div>
+  
+  <div id="controls">
+    <div id="progress">
+      <div id="buffer-bar"></div>
+      <div id="progress-bar"></div>
+    </div>
+    <div class="btn-group">
+      <button id="play">▶</button>
+      <button id="volume">🔊</button>
+      <span id="time">0:00 / 0:00</span>
+      <div class="spacer"></div>
+      <select id="quality"><option>Auto</option></select>
+      <button id="pip">⧉</button>
+      <button id="fullscreen">⛶</button>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const playBtn = document.getElementById('play');
+    const volumeBtn = document.getElementById('volume');
+    const qualitySelect = document.getElementById('quality');
+    const timeDisplay = document.getElementById('time');
+    const progressBar = document.getElementById('progress-bar');
+    const bufferBar = document.getElementById('buffer-bar');
+    const progress = document.getElementById('progress');
+    const loader = document.getElementById('loader');
+    const statsDiv = document.getElementById('stats');
+    let hls = null;
+
+    // Fast config optimized for speed
+    const config = {
+      debug: false,
+      enableWorker: true,
+      lowLatencyMode: true,
+      maxBufferLength: 10,        // Small buffer for fast startup
+      maxMaxBufferLength: 20,
+      backBufferLength: 5,
+      maxBufferSize: 60 * 1000 * 1000, // 60MB
+      maxBufferHole: 0.5,
+      highBufferWatchdogPeriod: 1,
+      nudgeOffset: 0.1,
+      nudgeMaxRetry: 5,
+      maxFragLookUpTolerance: 0.2,
+      liveSyncDurationCount: 2,   // Aggressive live sync
+      liveMaxLatencyDurationCount: 5,
+      liveDurationInfinity: false,
+      enableWebVTT: false,
+      enableCEA708Captions: false,
+      startPosition: -1,
+      autoStartLoad: true,
+      progressive: true
+    };
+
+    // Get URL from query param
+    const params = new URLSearchParams(window.location.search);
+    const url = params.get('url') || params.get('src') || params.get('v');
+
+    if (!url) {
+      alert('No video URL provided. Add ?url=YOUR_M3U8_URL to the page URL');
+    } else {
+      loadVideo(url);
+    }
+
+    function loadVideo(url) {
+      loader.style.display = 'block';
+      
+      if (Hls.isSupported()) {
+        hls = new Hls(config);
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        
+        hls.on(Hls.Events.MANIFEST_PARSED, (e, data) => {
+          loader.style.display = 'none';
+          populateQuality();
+          video.play();
+        });
+        
+        hls.on(Hls.Events.ERROR, (e, data) => {
+          if (data.fatal) {
+            loader.style.display = 'none';
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              hls.startLoad();
+            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+              hls.recoverMediaError();
+            }
+          }
+        });
+        
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+        video.addEventListener('loadedmetadata', () => {
+          loader.style.display = 'none';
+        });
+      }
+    }
+
+    function populateQuality() {
+      if (!hls) return;
+      qualitySelect.innerHTML = '<option value="-1">Auto</option>';
+      hls.levels.forEach((level, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `${level.height}p`;
+        qualitySelect.appendChild(opt);
+      });
+    }
+
+    // Controls
+    playBtn.onclick = () => {
+      if (video.paused) {
+        video.play();
+        playBtn.textContent = '⏸';
+      } else {
+        video.pause();
+        playBtn.textContent = '▶';
+      }
+    };
+
+    volumeBtn.onclick = () => {
+      video.muted = !video.muted;
+      volumeBtn.textContent = video.muted ? '🔇' : '🔊';
+    };
+
+    qualitySelect.onchange = (e) => {
+      if (hls) hls.currentLevel = parseInt(e.target.value);
+    };
+
+    document.getElementById('pip').onclick = () => {
+      if (document.pictureInPictureElement) {
+        document.exitPictureInPicture();
+      } else {
+        video.requestPictureInPicture();
+      }
+    };
+
+    document.getElementById('fullscreen').onclick = () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        document.documentElement.requestFullscreen();
+      }
+    };
+
+    // Progress
+    video.addEventListener('timeupdate', () => {
+      const percent = (video.currentTime / video.duration) * 100;
+      progressBar.style.width = percent + '%';
+      
+      const current = formatTime(video.currentTime);
+      const total = formatTime(video.duration);
+      timeDisplay.textContent = `${current} / ${total}`;
+      
+      // Buffer
+      if (video.buffered.length > 0) {
+        const bufferEnd = video.buffered.end(video.buffered.length - 1);
+        const bufferPercent = (bufferEnd / video.duration) * 100;
+        bufferBar.style.width = bufferPercent + '%';
+      }
+    });
+
+    progress.onclick = (e) => {
+      const rect = progress.getBoundingClientRect();
+      const percent = (e.clientX - rect.left) / rect.width;
+      video.currentTime = percent * video.duration;
+    };
+
+    video.addEventListener('waiting', () => loader.style.display = 'block');
+    video.addEventListener('playing', () => loader.style.display = 'none');
+    video.addEventListener('play', () => playBtn.textContent = '⏸');
+    video.addEventListener('pause', () => playBtn.textContent = '▶');
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      switch(e.key) {
+        case ' ':
+          e.preventDefault();
+          playBtn.click();
+          break;
+        case 'ArrowLeft':
+          video.currentTime -= 5;
+          break;
+        case 'ArrowRight':
+          video.currentTime += 5;
+          break;
+        case 'f':
+          document.getElementById('fullscreen').click();
+          break;
+        case 'm':
+          volumeBtn.click();
+          break;
+        case 's':
+          statsDiv.style.display = statsDiv.style.display === 'none' ? 'block' : 'none';
+          break;
+      }
+    });
+
+    // Stats (press 's' to toggle)
+    setInterval(() => {
+      if (hls && statsDiv.style.display === 'block') {
+        const level = hls.currentLevel >= 0 ? hls.levels[hls.currentLevel] : null;
+        const buf = video.buffered.length > 0 ? (video.buffered.end(0) - video.currentTime).toFixed(1) : 0;
+        statsDiv.innerHTML = `
+          Quality: ${level ? level.height + 'p' : 'Auto'}<br>
+          Bitrate: ${level ? (level.bitrate / 1000).toFixed(0) + ' kbps' : 'N/A'}<br>
+          Buffer: ${buf}s<br>
+          Latency: ${hls.latency ? hls.latency.toFixed(2) + 's' : 'N/A'}
+        `;
+      }
+    }, 1000);
+
+    function formatTime(seconds) {
+      if (!seconds || isNaN(seconds)) return '0:00';
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+  </script>
+</body>
+</html>

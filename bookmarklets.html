@@ -88,6 +88,18 @@
     </div>
 
     <div class="card">
+      <h2>Fast Player <span class="badge">SPEED</span></h2>
+      <p class="description">
+        Lightning-fast startup with minimal UI. Optimized for instant playback,
+        low latency streaming, and clean fullscreen experience.
+      </p>
+      <a href="javascript:(function(){const vids=document.querySelectorAll('video');if(!vids.length){alert('No video found on this page');return;}const src=Array.from(vids).map(v=>v.src||v.currentSrc).filter(Boolean)[0];if(src&&src.includes('.m3u8')){window.open('https://mnmltsai.github.io/hls-player/fast-player.html?url='+encodeURIComponent(src),'_blank');}else{const xhr=new XMLHttpRequest();xhr.open('GET',window.location.href);xhr.onload=function(){const match=xhr.responseText.match(/https?:\/\/[^\s&quot;&lt;&gt;]+\.m3u8[^\s&quot;&lt;&gt;]*/);if(match){window.open('https://mnmltsai.github.io/hls-player/fast-player.html?url='+encodeURIComponent(match[0]),'_blank');}else{alert('No .m3u8 URL found');}};xhr.send();}})();" class="bookmarklet">
+        🚀 Play in Fast Player
+      </a>
+      <div class="code-block" onclick="this.select()">javascript:(function(){const vids=document.querySelectorAll('video');if(!vids.length){alert('No video found on this page');return;}const src=Array.from(vids).map(v=>v.src||v.currentSrc).filter(Boolean)[0];if(src&&src.includes('.m3u8')){window.open('https://mnmltsai.github.io/hls-player/fast-player.html?url='+encodeURIComponent(src),'_blank');}else{const xhr=new XMLHttpRequest();xhr.open('GET',window.location.href);xhr.onload=function(){const match=xhr.responseText.match(/https?:\/\/[^\s"<>]+\.m3u8[^\s"<>]*/);if(match){window.open('https://mnmltsai.github.io/hls-player/fast-player.html?url='+encodeURIComponent(match[0]),'_blank');}else{alert('No .m3u8 URL found');}};xhr.send();}})();</div>
+    </div>
+
+    <div class="card">
       <h2>Advanced Player</h2>
       <p class="description">
         Feature-rich player with quality selection, ABR strategies, live stats, 
