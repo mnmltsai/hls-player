@@ -462,6 +462,7 @@
       <div class="shortcut-group">
         <h4>View</h4>
         <div class="shortcuts-grid">
+          <span class="shortcut-key">S</span><span class="shortcut-desc">Toggle stats panel</span>
           <span class="shortcut-key">P</span><span class="shortcut-desc">Toggle mini player</span>
           <span class="shortcut-key">C</span><span class="shortcut-desc">Toggle compare mode</span>
           <span class="shortcut-key">D</span><span class="shortcut-desc">Toggle dev tools</span>
@@ -500,6 +501,7 @@
       <button class="btn" id="miniBtn" onclick="toggleMiniPlayer()" aria-pressed="false">Mini</button>
       <button class="btn" id="compareBtn" onclick="toggleCompare()" aria-pressed="false">Compare</button>
       <button class="btn" id="syncBtn" onclick="toggleSync()" aria-pressed="false">Sync</button>
+      <button class="btn" id="statsBtn" onclick="toggleStats()" aria-pressed="true">Stats</button>
       <button class="btn" id="devBtn" onclick="toggleDevTools()" aria-pressed="false">Dev</button>
       <button class="btn" onclick="showShortcuts()">?</button>
     </div>
@@ -524,6 +526,12 @@
       <div class="player-wrapper" id="playerWrapper">
         <!-- Primary Player -->
         <div>
+          <div style="margin-bottom: 8px; display: flex; gap: 8px; align-items: center;">
+            <label style="font-size: 13px; color: var(--muted);">Quality A:</label>
+            <select id="qualitySelectA" onchange="setQualityA(this.value)" style="flex: 1;">
+              <option value="-1">Auto (ABR)</option>
+            </select>
+          </div>
           <media-controller id="mc">
             <video id="video" slot="media" playsinline crossorigin></video>
             <media-control-bar>
@@ -550,6 +558,12 @@
             <button class="btn" onclick="loadVideoB()">Load B</button>
             <button class="btn" onclick="swapPlayers()">Swap A⇄B</button>
           </div>
+          <div style="margin-bottom: 8px; display: flex; gap: 8px; align-items: center;">
+            <label style="font-size: 13px; color: var(--muted);">Quality B:</label>
+            <select id="qualitySelectB" onchange="setQualityB(this.value)" style="flex: 1;">
+              <option value="-1">Auto (ABR)</option>
+            </select>
+          </div>
           <media-controller id="mcB">
             <video id="videoB" slot="media" playsinline crossorigin></video>
             <media-control-bar>
@@ -568,7 +582,7 @@
       </div>
       
       <!-- Live Stats -->
-      <div class="panel">
+      <div class="panel" id="statsPanel">
         <h3>📊 Live Stats</h3>
         <div class="stats-grid">
           <div class="stat-item"><div class="stat-label">Quality A</div><div class="stat-value" id="statQualityA">—</div></div>
@@ -750,6 +764,9 @@
         log('info', `Manifest parsed (${isB ? 'B' : 'A'})`, data);
         if (!isB) {
           refreshManifest();
+          populateQualitySelect('A');
+        } else {
+          populateQualitySelect('B');
         }
       });
       
@@ -1171,6 +1188,72 @@
       URL.revokeObjectURL(url);
     }
     
+    // Quality Selection
+    function populateQualitySelect(player) {
+      const hls = player === 'A' ? state.hlsA : state.hlsB;
+      const select = document.getElementById(player === 'A' ? 'qualitySelectA' : 'qualitySelectB');
+      
+      if (!hls || !hls.levels || hls.levels.length === 0) {
+        select.innerHTML = '<option value="-1">Auto (ABR)</option>';
+        return;
+      }
+      
+      select.innerHTML = '<option value="-1">Auto (ABR)</option>';
+      
+      hls.levels.forEach((level, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        const height = level.height || '?';
+        const bitrate = level.bitrate ? Math.round(level.bitrate / 1000) + 'k' : '';
+        opt.textContent = `${height}p${bitrate ? ' - ' + bitrate : ''}`;
+        select.appendChild(opt);
+      });
+      
+      select.value = hls.currentLevel >= 0 ? hls.currentLevel : '-1';
+    }
+    
+    function setQualityA(levelIndex) {
+      if (!state.hlsA) return;
+      const level = parseInt(levelIndex);
+      
+      if (level === -1) {
+        state.hlsA.currentLevel = -1;
+        log('info', 'Quality A set to Auto (ABR)');
+      } else {
+        state.hlsA.currentLevel = level;
+        log('info', `Quality A set to level ${level}`);
+      }
+    }
+    
+    function setQualityB(levelIndex) {
+      if (!state.hlsB) return;
+      const level = parseInt(levelIndex);
+      
+      if (level === -1) {
+        state.hlsB.currentLevel = -1;
+        log('info', 'Quality B set to Auto (ABR)');
+      } else {
+        state.hlsB.currentLevel = level;
+        log('info', `Quality B set to level ${level}`);
+      }
+    }
+    
+    // Stats Panel Toggle
+    function toggleStats() {
+      const panel = document.getElementById('statsPanel');
+      const btn = document.getElementById('statsBtn');
+      
+      if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
+      } else {
+        panel.style.display = 'none';
+        btn.classList.remove('active');
+        btn.setAttribute('aria-pressed', 'false');
+      }
+    }
+    
     // Dev Tools Panel
     function toggleDevTools() {
       const sidebar = document.getElementById('devSidebar');
@@ -1259,6 +1342,10 @@
         case 'l':
         case 'L':
           document.getElementById('playlistSidebar').classList.toggle('mobile-open');
+          break;
+        case 's':
+        case 'S':
+          toggleStats();
           break;
         case 'p':
         case 'P':
