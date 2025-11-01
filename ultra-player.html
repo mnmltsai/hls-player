@@ -173,9 +173,49 @@
       console.log(`[${type.toUpperCase()}] ${msg}`, data || '');
     }
 
+    // URL validation function
+    function validateUrl(url) {
+      if (!url) return { valid: false, error: 'No URL provided' };
+      
+      // Block dangerous protocols
+      const dangerousProtocols = ['javascript:', 'data:', 'file:', 'blob:', 'vbscript:'];
+      const urlLower = url.toLowerCase();
+      for (const protocol of dangerousProtocols) {
+        if (urlLower.startsWith(protocol)) {
+          return { valid: false, error: 'Blocked URL protocol: ' + protocol };
+        }
+      }
+      
+      // Only allow HTTP(S)
+      if (!urlLower.startsWith('http://') && !urlLower.startsWith('https://')) {
+        return { valid: false, error: 'Only HTTP(S) URLs are allowed' };
+      }
+      
+      // Require .m3u8 extension
+      if (!urlLower.includes('.m3u8')) {
+        return { valid: false, error: 'URL must point to an .m3u8 HLS stream' };
+      }
+      
+      // Try to parse as URL
+      try {
+        new URL(url);
+      } catch (e) {
+        return { valid: false, error: 'Invalid URL format' };
+      }
+      
+      return { valid: true };
+    }
+
     function loadVideo() {
       const url = document.getElementById('urlInput').value.trim();
       if (!url) return alert('Enter a URL');
+      
+      const validation = validateUrl(url);
+      if (!validation.valid) {
+        alert('Security Error: ' + validation.error);
+        log('error', 'URL validation failed', { url, error: validation.error });
+        return;
+      }
       
       if (hls) hls.destroy();
       errorCount = 0;
@@ -354,8 +394,14 @@
     const params = new URLSearchParams(window.location.search);
     const urlParam = params.get('url') || params.get('src') || params.get('v');
     if (urlParam) {
-      document.getElementById('urlInput').value = urlParam;
-      loadVideo();
+      const validation = validateUrl(urlParam);
+      if (validation.valid) {
+        document.getElementById('urlInput').value = urlParam;
+        loadVideo();
+      } else {
+        alert('Security Error: ' + validation.error);
+        console.error('URL validation failed:', validation.error, urlParam);
+      }
     }
   </script>
 </body>

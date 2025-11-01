@@ -678,10 +678,49 @@
           log('info', 'Debug log downloaded as JSON');
         }
 
+        // URL validation function
+        function validateUrl(url) {
+          if (!url) return { valid: false, error: 'No URL provided' };
+          
+          // Block dangerous protocols
+          const dangerousProtocols = ['javascript:', 'data:', 'file:', 'blob:', 'vbscript:'];
+          const urlLower = url.toLowerCase();
+          for (const protocol of dangerousProtocols) {
+            if (urlLower.startsWith(protocol)) {
+              return { valid: false, error: 'Blocked URL protocol: ' + protocol };
+            }
+          }
+          
+          // Only allow HTTP(S)
+          if (!urlLower.startsWith('http://') && !urlLower.startsWith('https://')) {
+            return { valid: false, error: 'Only HTTP(S) URLs are allowed' };
+          }
+          
+          // Require .m3u8 extension
+          if (!urlLower.includes('.m3u8')) {
+            return { valid: false, error: 'URL must point to an .m3u8 HLS stream' };
+          }
+          
+          // Try to parse as URL
+          try {
+            new URL(url);
+          } catch (e) {
+            return { valid: false, error: 'Invalid URL format' };
+          }
+          
+          return { valid: true };
+        }
+
         loadBtn.addEventListener('click', () => {
           const url = (srcInput.value || '').trim();
           if (!url) {
             alert('Please enter a .m3u8 URL');
+            return;
+          }
+          const validation = validateUrl(url);
+          if (!validation.valid) {
+            alert('Security Error: ' + validation.error);
+            log('error', 'URL validation failed', { url, error: validation.error });
             return;
           }
           const wasPaused = video.paused;
@@ -720,7 +759,14 @@
         // Initial load
         srcInput.value = urlFromParam || DEFAULT_SRC;
         if (srcInput.value) {
-          attachAndLoad(srcInput.value, { paused: true });
+          const validation = validateUrl(srcInput.value);
+          if (validation.valid) {
+            attachAndLoad(srcInput.value, { paused: true });
+          } else {
+            alert('Security Error: ' + validation.error);
+            log('error', 'URL validation failed on init', { url: srcInput.value, error: validation.error });
+            srcInput.value = DEFAULT_SRC;
+          }
         }
 
         document.addEventListener('visibilitychange', () => {
