@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>HLS Player Bookmarklets</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #e2e8f0;
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { margin-bottom: 12px; font-size: 32px; }
+    .subtitle { color: #94a3b8; margin-bottom: 40px; }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    h2 { font-size: 20px; margin-bottom: 8px; color: #22d3ee; }
+    .description { color: #94a3b8; font-size: 14px; margin-bottom: 16px; }
+    .bookmarklet {
+      display: inline-block;
+      background: linear-gradient(90deg, #06b6d4, #22d3ee);
+      color: #0f172a;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 16px;
+      transition: transform 0.2s;
+    }
+    .bookmarklet:hover { transform: scale(1.05); }
+    .code-block {
+      background: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      color: #22d3ee;
+    }
+    .instructions {
+      background: #0f172a;
+      border-left: 4px solid #22d3ee;
+      padding: 16px;
+      margin-top: 24px;
+      border-radius: 4px;
+    }
+    .instructions h3 { font-size: 16px; margin-bottom: 12px; color: #22d3ee; }
+    .instructions ol { margin-left: 20px; }
+    .instructions li { margin-bottom: 8px; color: #cbd5e1; }
+    .badge {
+      display: inline-block;
+      background: #0f172a;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: bold;
+      margin-left: 8px;
+      color: #22d3ee;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 HLS Player Bookmarklets</h1>
+    <p class="subtitle">Drag these links to your bookmarks bar to extract and play HLS streams</p>
+
+    <div class="card">
+      <h2>Ultra Player <span class="badge">NEW</span></h2>
+      <p class="description">
+        All bleeding-edge features: low latency mode, audio/subtitle track selection, 
+        advanced buffer controls, network monitoring, and debug logging.
+      </p>
+      <a href="javascript:(function(){const vids=document.querySelectorAll('video');if(!vids.length){alert('No video found on this page');return;}const src=Array.from(vids).map(v=>v.src||v.currentSrc).filter(Boolean)[0];if(src&&src.includes('.m3u8')){window.open('https://mnmltsai.github.io/hls-player/ultra-player.html?url='+encodeURIComponent(src),'_blank');}else{const xhr=new XMLHttpRequest();xhr.open('GET',window.location.href);xhr.onload=function(){const match=xhr.responseText.match(/https?:\/\/[^\s&quot;&lt;&gt;]+\.m3u8[^\s&quot;&lt;&gt;]*/);if(match){window.open('https://mnmltsai.github.io/hls-player/ultra-player.html?url='+encodeURIComponent(match[0]),'_blank');}else{alert('No .m3u8 URL found');}};xhr.send();}})();" class="bookmarklet">
+        ⚡ Play in Ultra Player
+      </a>
+      <div class="code-block" onclick="this.select()">javascript:(function(){const vids=document.querySelectorAll('video');if(!vids.length){alert('No video found on this page');return;}const src=Array.from(vids).map(v=>v.src||v.currentSrc).filter(Boolean)[0];if(src&&src.includes('.m3u8')){window.open('https://mnmltsai.github.io/hls-player/ultra-player.html?url='+encodeURIComponent(src),'_blank');}else{const xhr=new XMLHttpRequest();xhr.open('GET',window.location.href);xhr.onload=function(){const match=xhr.responseText.match(/https?:\/\/[^\s"<>]+\.m3u8[^\s"<>]*/);if(match){window.open('https://mnmltsai.github.io/hls-player/ultra-player.html?url='+encodeURIComponent(match[0]),'_blank');}else{alert('No .m3u8 URL found');}};xhr.send();}})();</div>
+    </div>
+
+    <div class="card">
+      <h2>Advanced Player</h2>
+      <p class="description">
+        Feature-rich player with quality selection, ABR strategies, live stats, 
+        error recovery, and detailed debug information.
+      </p>
+      <a href="javascript:(function(){const vids=document.querySelectorAll('video');if(!vids.length){alert('No video found on this page');return;}const src=Array.from(vids).map(v=>v.src||v.currentSrc).filter(Boolean)[0];if(src&&src.includes('.m3u8')){window.open('https://mnmltsai.github.io/hls-player/advanced-player.html?url='+encodeURIComponent(src),'_blank');}else{const xhr=new XMLHttpRequest();xhr.open('GET',window.location.href);xhr.onload=function(){const match=xhr.responseText.match(/https?:\/\/[^\s&quot;&lt;&gt;]+\.m3u8[^\s&quot;&lt;&gt;]*/);if(match){window.open('https://mnmltsai.github.io/hls-player/advanced-player.html?url='+encodeURIComponent(match[0]),'_blank');}else{alert('No .m3u8 URL found');}};xhr.send();}})();" class="bookmarklet">
+        🎬 Play in Advanced Player
+      </a>
+      <div class="code-block" onclick="this.select()">javascript:(function(){const vids=document.querySelectorAll('video');if(!vids.length){alert('No video found on this page');return;}const src=Array.from(vids).map(v=>v.src||v.currentSrc).filter(Boolean)[0];if(src&&src.includes('.m3u8')){window.open('https://mnmltsai.github.io/hls-player/advanced-player.html?url='+encodeURIComponent(src),'_blank');}else{const xhr=new XMLHttpRequest();xhr.open('GET',window.location.href);xhr.onload=function(){const match=xhr.responseText.match(/https?:\/\/[^\s"<>]+\.m3u8[^\s"<>]*/);if(match){window.open('https://mnmltsai.github.io/hls-player/advanced-player.html?url='+encodeURIComponent(match[0]),'_blank');}else{alert('No .m3u8 URL found');}};xhr.send();}})();</div>
+    </div>
+
+    <div class="instructions">
+      <h3>📌 How to Install</h3>
+      <ol>
+        <li>Show your browser's bookmarks bar (⌘+Shift+B on Mac, Ctrl+Shift+B on Windows)</li>
+        <li>Drag the button above to your bookmarks bar</li>
+        <li>Or: Right-click the button → "Add to Bookmarks"</li>
+        <li>Or: Copy the code block and create a new bookmark manually with the code as the URL</li>
+      </ol>
+    </div>
+
+    <div class="instructions">
+      <h3>🎯 How to Use</h3>
+      <ol>
+        <li>Navigate to any webpage with a video or HLS stream</li>
+        <li>Click the bookmarklet in your bookmarks bar</li>
+        <li>The player will open in a new tab with the detected stream</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>
