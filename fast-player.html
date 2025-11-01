@@ -140,6 +140,7 @@
       <span id="time">0:00 / 0:00</span>
       <div class="spacer"></div>
       <select id="quality"><option>Auto</option></select>
+      <button id="download" title="Copy stream URL">⬇</button>
       <button id="pip">⧉</button>
       <button id="fullscreen">⛶</button>
     </div>
@@ -261,6 +262,27 @@
         document.exitPictureInPicture();
       } else {
         video.requestPictureInPicture();
+      }
+    };
+
+    document.getElementById('download').onclick = async () => {
+      const streamUrl = new URLSearchParams(window.location.search).get('url') || 
+                        new URLSearchParams(window.location.search).get('src') || 
+                        new URLSearchParams(window.location.search).get('v');
+      if (streamUrl) {
+        try {
+          await navigator.clipboard.writeText(streamUrl);
+          const btn = document.getElementById('download');
+          const orig = btn.textContent;
+          btn.textContent = '✓';
+          btn.style.color = '#00d4ff';
+          setTimeout(() => {
+            btn.textContent = orig;
+            btn.style.color = 'white';
+          }, 2000);
+        } catch (e) {
+          alert('Stream URL: ' + streamUrl);
+        }
       }
     };
 
